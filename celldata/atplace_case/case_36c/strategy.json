@@ -1,0 +1,49 @@
+{
+    "en_gpu": false,
+    "whitespace": 1,
+    "GPStage": [
+        { "id": 0, "stage": 0, "max_iter": 1500, "use_gumbel": 1, "use_flip": 0, "updaters": [
+            { "param": "hpwl_smoothness", "target": 10.00, "decay": 0.99 },
+            { "param": "ovl_smoothness",  "target": 2.00, "decay": 0.99 },
+            { "param": "cra_smoothness",  "target": 1.00, "decay": 0.999 },
+
+            { "param": "hpwl_w_xy", "target": 0.80, "decay": 0.1    },
+            { "param": "hpwl_w_rot", "target": 1.00, "decay": 0.999  },
+            { "param": "hpwl_w_flip", "target": 0.00, "decay": 0.999  },
+            { "param": "hpwl_gumbel", "target": 1.00, "decay": 0.1  },
+            { "param": "ovl_w_xy",  "target": 0.10, "decay": 0.999 },
+            { "param": "bdy_w_xy",  "target": 0.33, "decay": 0.9 },
+            { "param": "cra_w_xy",  "target": 0.10, "decay": 0.1 }
+            ]
+        },
+
+        { "id": 1, "stage": 0, "max_iter": 2500, "use_gumbel": 1, "use_flip": 0, "updaters": [
+            { "param": "hpwl_smoothness", "target": 2.00, "decay": 0.999},
+            { "param": "ovl_smoothness",  "target": 0.00, "decay": 0.999 },
+            { "param": "cra_smoothness",  "target": 0.01, "decay": 0.999 },
+
+            { "param": "hpwl_w_xy", "target": 0.20, "decay": 0.999 },
+            { "param": "hpwl_w_rot", "target": 1.50, "decay": 0.995 },
+            { "param": "hpwl_w_flip", "target": 0.00, "decay": 0.999  },
+            { "param": "hpwl_gumbel", "target": 30.00, "decay": 0.999 },
+            { "param": "ovl_w_xy",  "target": 0.10, "decay": 0.999 },
+            { "param": "bdy_w_xy",  "target": 0.33, "decay": 0.999 },
+            { "param": "cra_w_xy",  "target": 0.50, "decay": 0.999 }
+            ]
+        },
+
+        { "id": 2, "stage": 0, "max_iter": 2000, "use_gumbel": 1, "use_flip": 0, "updaters": [
+            { "param": "hpwl_smoothness", "target": 0.00, "decay": 0.995 },
+            { "param": "ovl_smoothness",  "target": 0.10, "decay": 0.999 },
+            { "param": "cra_smoothness",  "target": 0.01, "decay": 0.999 },
+
+            { "param": "hpwl_w_xy", "target": 0.05, "decay": 0.995 },
+            { "param": "hpwl_w_rot", "target": 0.00, "decay": 0.999 },
+            { "param": "hpwl_gumbel", "target": 0.00, "decay": 0.993 },
+            { "param": "ovl_w_xy",  "target": 2.00, "decay": 0.999 },
+            { "param": "bdy_w_xy",  "target": 3.33, "decay": 0.9 },
+            { "param": "cra_w_xy",  "target": 0.50, "decay": 0.999 }
+            ]
+        }
+    ]
+}

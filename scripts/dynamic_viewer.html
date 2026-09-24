@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Chiplet Viewer_v3</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 180px;
+      font-family: monospace;
+    }
+
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 20px;
+      display: block;
+    }
+
+    button,
+    input[type="file"],
+    input[type="range"] {
+      margin-top: 10px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>📦 Chiplet Viewer + 文件夹读取 + 进度条控制 + 自动播放</h2>
+  <input type="file" id="folderInput" webkitdirectory multiple />
+  <br>
+  <label for="slider">选择 ID：</label>
+  <input type="range" id="slider" min="0" max="0" value="0" />
+  <span id="sliderLabel"></span>
+  <br>
+  <textarea id="input"></textarea><br>
+  <button onclick="draw()">绘制</button>
+  <canvas id="canvas" width="1600" height="600"></canvas>
+
+  <!-- 播放控制 -->
+  <div class="controls">
+    <button id="playPauseBtn">▶ 播放</button>
+    <label for="speedSlider">速度（秒）：</label>
+    <input type="range" id="speedSlider" min="0.001" max="0.1" step="0.001" value="0.05" />
+    <span id="speedLabel">0.050 s</span>
+  </div>
+
+  <script>
+    let geoFiles = [];
+    let fixedBounds = null; // 保存第一次绘制的边界和缩放
+
+    document.getElementById('folderInput').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      geoFiles = [];
+
+      for (let file of files) {
+        const match = file.name.match(/^(\d+)_geo\.txt$/);
+        if (match) {
+          const id = parseInt(match[1]);
+          const content = await file.text();
+          geoFiles.push({ id, content });
+        }
+      }
+
+      geoFiles.sort((a, b) => a.id - b.id);
+      const slider = document.getElementById('slider');
+      slider.min = 0;
+      slider.max = geoFiles.length - 1;
+      slider.value = 0;
+      fixedBounds = null; // 加载新数据时重置边界
+      updateTextarea(0);
+    });
+
+    document.getElementById('slider').addEventListener('input', (e) => {
+      const index = parseInt(e.target.value);
+      updateTextarea(index);
+    });
+
+    function updateTextarea(index) {
+      const file = geoFiles[index];
+      document.getElementById('input').value = file.content;
+      document.getElementById('sliderLabel').textContent = `ID: ${file.id}`;
+      draw();
+    }
+
+    function parseData(text) {
+      const chiplets = [], cpairs = [];
+      const lines = text.split('\n');
+      let mode = '';
+      for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith('#')) {
+          mode = line.includes('Chiplet') ? 'chiplet' : line.includes('CPair') ? 'cpair' : '';
+          continue;
+        }
+        if (!line || mode === '') continue;
+        const parts = line.split(' ').map(Number);
+        if (mode === 'chiplet') chiplets.push({ id: parts[0], x: parts[1], y: parts[2], theta: parts[3], thetaf: parts[4], w: parts[5], h: parts[6] });
+        else if (mode === 'cpair') cpairs.push({ id0: parts[0], dx0: parts[1], dy0: parts[2], id1: parts[3], dx1: parts[4], dy1: parts[5] });
+      }
+      return { chiplets, cpairs };
+    }
+
+    function rotate(dx, dy, thetaDeg, thetafDeg) {
+      const theta  = thetaDeg  * Math.PI / 180;
+      const thetaf = thetafDeg * Math.PI / 180;
+      const cos_theta = Math.cos(theta), sin_theta = Math.sin(theta), cos_thetaf = Math.cos(thetaf);
+      return { x: dx * cos_thetaf * cos_theta - dy * sin_theta, y: dx * cos_thetaf * sin_theta + dy * cos_theta };
+    }
+
+    function drawAxes(ctx, minX, maxX, minY, maxY, scale) {
+      const tickSize = 5 / scale;
+      const fontSize = 12 / scale;
+      const stepX = 10, stepY = 10;
+      ctx.save();
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1 / scale;
+      ctx.beginPath();
+      ctx.moveTo(minX, 0); ctx.lineTo(maxX, 0);
+      ctx.moveTo(0, minY); ctx.lineTo(0, maxY);
+      ctx.stroke();
+      for (let x = minX; x <= maxX; x += stepX) {
+        ctx.beginPath(); ctx.moveTo(x, -tickSize); ctx.lineTo(x, tickSize); ctx.stroke();
+      }
+      for (let y = minY; y <= maxY; y += stepY) {
+        ctx.beginPath(); ctx.moveTo(-tickSize, y); ctx.lineTo(tickSize, y); ctx.stroke();
+      }
+      ctx.save();
+      ctx.scale(1, -1);
+      ctx.fillStyle = '#000';
+      ctx.font = `${fontSize}px sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let x = minX; x <= maxX; x += stepX) {
+        if (Math.abs(x) > 1e-3) ctx.fillText(x.toFixed(0), x, -tickSize * 1.5);
+      }
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let y = minY; y <= maxY; y += stepY) {
+        if (Math.abs(y) > 1e-3) ctx.fillText(y.toFixed(0), -tickSize * 1.5, -y);
+      }
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function draw() {
+      const text = document.getElementById('input').value;
+      const { chiplets, cpairs } = parseData(text);
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width / 2, H = canvas.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let minX, maxX, minY, maxY, scale;
+      if (!fixedBounds) {
+        // minX = Infinity; maxX = -Infinity; minY = Infinity; maxY = -Infinity;
+        // for (let c of chiplets) {
+        //   const corners = [
+        //     rotate(-c.w / 2, -c.h / 2, c.theta, 0),
+        //     rotate(c.w / 2, -c.h / 2, c.theta, 0),
+        //     rotate(c.w / 2, c.h / 2, c.theta, 0),
+        //     rotate(-c.w / 2, c.h / 2, c.theta, 0)
+        //   ];
+        //   for (let pt of corners) {
+        //     const x = c.x + pt.x, y = c.y + pt.y;
+        //     minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        //     minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        //   }
+        // }
+        minX = -10, minY = -10, maxX = 210, maxY = 210;
+        const marginX = (maxX - minX) * 0.05;
+        const marginY = (maxY - minY) * 0.05;
+        minX = Math.floor((minX - marginX) / 10) * 10;
+        maxX = Math.ceil((maxX + marginX) / 10) * 10;
+        minY = Math.floor((minY - marginY) / 10) * 10;
+        maxY = Math.ceil((maxY + marginY) / 10) * 10;
+        const scaleX = W / (maxX - minX), scaleY = H / (maxY - minY);
+        scale = Math.min(scaleX, scaleY);
+        fixedBounds = { minX, maxX, minY, maxY, scale };
+      } else {
+        ({ minX, maxX, minY, maxY, scale } = fixedBounds);
+      }
+      // Left view
+      ctx.save();
+      ctx.translate(W / 2, H / 2);
+      ctx.scale(scale, -scale);
+      ctx.translate(-(minX + maxX) / 2, -(minY + maxY) / 2);
+      drawAxes(ctx, minX, maxX, minY, maxY, scale);
+
+      for (let c of chiplets) {
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.theta * Math.PI / 180);
+        ctx.fillStyle = 'rgba(100, 150, 240, 0.4)';
+        ctx.fillRect(-c.w * Math.cos(c.thetaf/180*Math.PI) / 2, -c.h / 2, c.w * Math.cos(c.thetaf/180*Math.PI), c.h);
+        ctx.restore();
+
+        ctx.save();
+        ctx.scale(1, -1);
+        ctx.fillStyle = '#000';
+        ctx.font = `${12 / scale}px sans-serif`;
+        // ctx.fillText(c.id.toString(), c.x + 5, -c.y - 5);
+        ctx.restore();
+      }
+
+      ctx.strokeStyle = 'rgba(200, 50, 50, 0.8)';
+      ctx.lineWidth = 1 / scale;
+      for (let p of cpairs) {
+        const c0 = chiplets.find(c => c.id === p.id0);
+        const c1 = chiplets.find(c => c.id === p.id1);
+        if (!c0 || !c1) continue;
+        const r0 = rotate(p.dx0, p.dy0, c0.theta, c0.thetaf);
+        const r1 = rotate(p.dx1, p.dy1, c1.theta, c1.thetaf);
+        const x0 = c0.x + r0.x, y0 = c0.y + r0.y;
+        const x1 = c1.x + r1.x, y1 = c1.y + r1.y;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      }
+      ctx.restore();
+
+      // 右视图：按角度变形
+      ctx.save();
+      ctx.translate(W + W / 2, H / 2);
+      ctx.scale(scale, -scale);
+      ctx.translate(-(minX + maxX) / 2, -(minY + maxY) / 2);
+      drawAxes(ctx, minX, maxX, minY, maxY, scale);
+
+      for (let c of chiplets) {
+        const thetaRad = c.theta * Math.PI / 180;
+        const cos2Theta = 0.5 * (1 + Math.cos(2 * thetaRad));
+        const w0 = cos2Theta * c.w + (1 - cos2Theta) * c.h;
+        const h0 = cos2Theta * c.h + (1 - cos2Theta) * c.w;
+
+        ctx.fillStyle = 'rgba(240, 150, 150, 0.4)';
+        ctx.fillRect(c.x - w0 / 2, c.y - h0 / 2, w0, h0);
+
+        ctx.save();
+        ctx.scale(1, -1);
+        ctx.fillStyle = '#000';
+        ctx.font = `${12 / scale}px sans-serif`;
+        ctx.fillText(c.id.toString(), c.x + 5, -c.y - 5);
+        ctx.restore();
+      }
+
+      ctx.restore(); // End right view
+    }
+  </script>
+
+  <!-- 播放控制层：0.001~0.1 秒范围 -->
+  <script>
+    (() => {
+      const slider = document.getElementById('slider');
+      const playBtn = document.getElementById('playPauseBtn');
+      const speedSlider = document.getElementById('speedSlider');
+      const speedLabel = document.getElementById('speedLabel');
+
+      let playing = false;
+      let timerId = null;
+      let isDragging = false;
+      let wasPlayingBeforeDrag = false;
+
+      function refreshSpeedLabel() {
+        speedLabel.textContent = `${parseFloat(speedSlider.value).toFixed(3)} s`;
+      }
+      refreshSpeedLabel();
+
+      function stopAutoPlay() {
+        if (timerId) { clearInterval(timerId); timerId = null; }
+      }
+      function startAutoPlay() {
+        stopAutoPlay();
+        const periodMs = parseFloat(speedSlider.value) * 1000;
+        timerId = setInterval(() => {
+          if (isDragging) return;
+          const max = parseInt(slider.max) || 0;
+          if (max < 0) return;
+          const cur = parseInt(slider.value) || 0;
+          const next = (cur + 1) % (max + 1);
+          slider.value = next;
+          slider.dispatchEvent(new Event('input', { bubbles: true }));
+        }, periodMs);
+      }
+
+      playBtn.addEventListener('click', () => {
+        playing = !playing;
+        playBtn.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+        if (playing) startAutoPlay(); else stopAutoPlay();
+      });
+
+      speedSlider.addEventListener('input', () => {
+        refreshSpeedLabel();
+        if (playing) startAutoPlay();
+      });
+
+      function onDragStart() {
+        if (isDragging) return;
+        isDragging = true;
+        wasPlayingBeforeDrag = playing;
+        stopAutoPlay();
+      }
+      function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        if (wasPlayingBeforeDrag) startAutoPlay();
+      }
+      slider.addEventListener('mousedown', onDragStart);
+      slider.addEventListener('mouseup', onDragEnd);
+      slider.addEventListener('touchstart', onDragStart, { passive: true });
+      slider.addEventListener('touchend', onDragEnd);
+    })();
+  </script>
+</body>
+
+</html>
