@@ -2,7 +2,6 @@ import os
 import time
 import numpy as np
 import subprocess
-import deap.base, deap.creator, deap.tools, deap.algorithms
 import matplotlib.pyplot as plt
 import pyomo.environ as env
 from python.utils.utils import read_json, tomatrix
@@ -252,37 +251,5 @@ class Partition(object):
     def _viol_exp(self, x):
         return 0 if x <= 0 else np.exp(x) - 1
 
-    
-    def run_GA(self):
-        deap.creator.create("FitnessMin", deap.base.Fitness, weights=(-1.0,))
-        deap.creator.create("Individual", list, fitness=deap.creator.FitnessMin)
-
-        toolbox = deap.base.Toolbox()
-        toolbox.register("attr_int", np.random.randint, 0, self.Nr+1)  # 离散变量：0~N-1 的整数
-        toolbox.register("individual", deap.tools.initRepeat, deap.creator.Individual, toolbox.attr_int, self.Nc)
-        toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
-
-        toolbox.register("evaluate", self.objective_function)
-        toolbox.register("mate", deap.tools.cxTwoPoint)  # 两点交叉
-        toolbox.register("mutate", deap.tools.mutUniformInt, low=0, up=self.Nr, indpb=0.1)  # 均匀变异
-        toolbox.register("select", deap.tools.selTournament, tournsize=3)  # 锦标赛选择
-
-        population = toolbox.population(n=500)  # 种群大小100
-
-        self.start = time.time()
-        deap.algorithms.eaSimple(population, toolbox, cxpb=0.5, mutpb=0.2, ngen=1000, verbose=True)
-
-        # best
-        best_individual = deap.tools.selBest(population, k=1)[0]
-        _ = self.objective_function(best_individual)
-
-        arr = np.array(self.logger)
-        np.savetxt(self.save_dir+"ga_logger.txt", arr, fmt='%.3e')
-        np.savetxt(self.save_dir+"chiplet_allocation.txt", np.array(best_individual).reshape(1, -1), fmt='%d')
-        # print(arr)
-        plt.plot(arr[:, 1], arr[:, -1], "-b")
-        plt.plot(arr[:, 1], np.minimum.accumulate(arr[:, -1]), "-r")
-        plt.savefig(self.save_dir+"ga_converge_curve.png")
-        print("最优分配:", best_individual)
 
     

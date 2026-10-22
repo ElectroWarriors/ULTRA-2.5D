@@ -28,9 +28,16 @@ class MainFlow(object):
         self.workdir = workdir
         self.casedir = casedir
 
+    def generate_chiplet_case(self):                                                                                             #
+        case_generator = generator.Chiplets(self.workdir, self.casedir, enplot=False)                                            #
+        case_generator.generate()                                                                                                #
+
+    def cluster_assignment(self):                                                                                                #
+        cla = claster_assignment.ClusterAssignment(self.workdir, self.casedir)                                                   #
+        cla.assign_chiplet_cluster()  
+
     def generate_case(self, en_place_init=False, chiplet_type="default"):
-        if (en_place_init): self.initial_placement() # b* tree + SA, update location message in 'case_description.json'
-        else: subprocess.run(["cp", self.workdir+self.casedir+"case_discription.json", self.workdir+self.casedir+"place_init/"]) 
+        subprocess.run(["cp", self.workdir+self.casedir+"case_discription.json", self.workdir+self.casedir+"place_init/"]) 
         self.generate_chiplet_case() # generate 'chiplet.json' with 'case_description.json'
         self.cluster_assignment() # pins cluster assignment (Gaussian Function), edit 'chiplet.json'
 
@@ -38,7 +45,6 @@ class MainFlow(object):
         reticle_file = self.workdir+"scripts/reticle_type/"+reticle_file
         par = partition.Partition(self.workdir, self.casedir, reticle_file)
         if (enmilp): par.run_MIQP()
-        else: par.run_GA()
 
     def run_gplacer(self, option="gd"):
         pla = placer.Placer(self.workdir, self.casedir)
