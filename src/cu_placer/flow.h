@@ -24,7 +24,12 @@ class MainFlow {
             spdlog::info("  / /_/ / __/ / /   / /   / / / /  / /_/ / /   / /| |/ /   / __/ / /_/ /");
             spdlog::info(" / __  / /___/ /___/ /___/ /_/ /  / ____/ /___/ ___ / /___/ /___/ _  _/ ");
             spdlog::info("/_/ /_/_____/_____/_____/\\____/  /_/   /_____/_/  |_\\____/_____/_/ |_|  ");
-
+            spdlog::info("██╗   ██╗██╗  ████████╗██████╗  █████╗       ██████╗    ███████╗██████╗ ");
+            spdlog::info("██║   ██║██║  ╚══██╔══╝██╔══██╗██╔══██╗      ╚════██╗   ██╔════╝██╔══██╗");
+            spdlog::info("██║   ██║██║     ██║   ██████╔╝███████║█████╗ █████╔╝   ███████╗██║  ██║");
+            spdlog::info("██║   ██║██║     ██║   ██╔══██╗██╔══██║╚════╝██╔═══╝    ╚════██║██║  ██║");
+            spdlog::info("╚██████╔╝███████╗██║   ██║  ██║██║  ██║      ███████╗██╗███████║██████╔╝");
+            spdlog::info(" ╚═════╝ ╚══════╝╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝      ╚══════╝╚═╝╚══════╝╚═════╝ ");
             _json_netlist      = utils::ReadJSON(_workdir+_casedir+"json_chiplets/chiplet.json");
             _json_interposer   = utils::ReadJSON(_workdir+_casedir+"json_chiplets/interposer.json");
             _json_datadescript = utils::ReadJSON(_workdir+_casedir+"place_init/case_discription.json");

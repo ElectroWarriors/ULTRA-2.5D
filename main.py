@@ -1,6 +1,9 @@
 import time
+import subprocess
 
-import python.partition.partition as huristic_partition
+import python.case_generator.generator as generator
+import python.cluster_assignment.cluster_assignment as claster_assignment
+import python.partition.partition as partition
 import python.placer.placer as placer
 
 
@@ -25,11 +28,17 @@ class MainFlow(object):
         self.workdir = workdir
         self.casedir = casedir
 
+    def generate_case(self, en_place_init=False, chiplet_type="default"):
+        if (en_place_init): self.initial_placement() # b* tree + SA, update location message in 'case_description.json'
+        else: subprocess.run(["cp", self.workdir+self.casedir+"case_discription.json", self.workdir+self.casedir+"place_init/"]) 
+        self.generate_chiplet_case() # generate 'chiplet.json' with 'case_description.json'
+        self.cluster_assignment() # pins cluster assignment (Gaussian Function), edit 'chiplet.json'
+
     def partition(self, reticle_file, enmilp):
         reticle_file = self.workdir+"scripts/reticle_type/"+reticle_file
-        hur = huristic_partition.Huristic_Partition(self.workdir, self.casedir, reticle_file)
-        if (enmilp): hur.run_MIQP()
-        else: hur.run_GA()
+        par = partition.Partition(self.workdir, self.casedir, reticle_file)
+        if (enmilp): par.run_MIQP()
+        else: par.run_GA()
 
     def run_gplacer(self, option="gd"):
         pla = placer.Placer(self.workdir, self.casedir)
@@ -37,6 +46,12 @@ class MainFlow(object):
         elif(option == "milp"): pla.milp_placer()
 
 if __name__=="__main__":
+    ## generate case
+    # flow = MainFlow(work_path, file_path)
+    # print("work space: " + work_path)
+    # print("file path : " + file_path)
+    # flow.generate_case(en_place_init=False, chiplet_type="default")
+
     # ---------------------- sweep cases ---------------------- #
     num_loop = 1
     work_path = f"/path/to/Multi_Reticle/"

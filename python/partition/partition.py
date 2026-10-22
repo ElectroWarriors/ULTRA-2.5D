@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pyomo.environ as env
 from python.utils.utils import read_json, tomatrix
 
-class Huristic_Partition(object):
+class Partition(object):
     def __init__(self, work_dir, case_dir, reticle_file):
         # load path
         self.work_dir = work_dir
