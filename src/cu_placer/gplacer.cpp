@@ -198,12 +198,6 @@ void GPlacer::CUDAInit() {
 
 
 void GPlacer::AdamOptimize(arma::vec& x_out, IndexType stage) {
-    // strategy.json stores report-scale targets (report qwl_* uses hpwl_* here).
-    static const std::unordered_map<std::string, double> target_scale_factors = {
-        {"hpwl_smoothness", 10.0}, {"ovl_smoothness", 10.0}, {"cra_smoothness", 10.0},
-        {"hpwl_w_xy", 100.0}, {"hpwl_w_rot", 100.0}, {"hpwl_w_flip", 100.0},
-        {"bdy_w_xy", 300.0}, {"ovl_w_xy", 100.0}, {"cra_w_xy", 100.0}
-    };
     spdlog::info("[nlp] optimization setting init");
     x_out = _x_init;
     auto objfunc = std::bind(&GPlacer::ObjFunc, this, 
@@ -225,14 +219,6 @@ void GPlacer::AdamOptimize(arma::vec& x_out, IndexType stage) {
         spdlog::info("[nlp] stage(stretegy) {}: substage {}", stage, substage++);
         _max_iter = strategy_i["max_iter"].asInt();
         settings.iter_max = _max_iter;
-
-        // Restore internal units on this stage's copy for both CPU and GPU.
-        for (auto& updater : strategy_i["updaters"]) {
-            auto it = target_scale_factors.find(updater["param"].asString());
-            if (it != target_scale_factors.end()) {
-                updater["target"] = updater["target"].asDouble() * it->second;
-            }
-        }
 
         if (utils::EN_GPU) {
             if (strategy_i["stage"].asInt() != 0) { continue; } 
@@ -651,9 +637,9 @@ void GPlacer::print_val_grad_msg(NameType path, IndexType idx) {
     iter_logger->info("chiplet x, y, theta, z0~z3, grad_x, grad_y, grad_z0 ~ grad_z3");
     for (auto& ptr_chiplet : _db.chiplets()) {
         Chiplet* c = ptr_chiplet.get();
-        iter_logger->info("chiplet {}: x={}, y={}, theta={}, z=[{}, {}, {}, {}] | dx={}, dy={}, dz=[{}, {}, {}, {}]", c->id(), \
-                          c->xc(), c->yc(), c->theta(), c->z()[0], c->z()[1], c->z()[2], c->z()[3], \
-                          c->grad()[0], c->grad()[1], c->grad()[2], c->grad()[3], c->grad()[4], c->grad()[5]);
+        iter_logger->info("chiplet {}: x={}, y={}, theta={}, z=[{}, {}, {}, {}, {}, {}, {}, {}] | dx={}, dy={}, dz=[{}, {}, {}, {}, {}, {}, {}, {}]", c->id(), \
+                          c->xc(), c->yc(), c->theta(), c->z()[0], c->z()[1], c->z()[2], c->z()[3], c->z()[4], c->z()[5], c->z()[6], c->z()[7], \
+                          c->grad()[0], c->grad()[1], c->grad()[2], c->grad()[3], c->grad()[4], c->grad()[5], c->grad()[6], c->grad()[7], c->grad()[8], c->grad()[9]);
     }
     // hpwl
     iter_logger->info("");

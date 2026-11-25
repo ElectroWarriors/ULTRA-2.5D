@@ -2,6 +2,8 @@
 
 **An Analytical Placement Framework for Ultra-Large-Scale Multi-Reticle Chiplet Systems**
 
+[Paper (IEEE Xplore)](https://ieeexplore.ieee.org/abstract/document/11740930)
+
 ULTRA-2.5D is an analytical placement framework for ultra-large-scale, multi-reticle 2.5D chiplet systems. Through partitioning, differentiable global placement, and legalization, it jointly optimizes chiplet positions, rotations, and flips while considering cross-reticle connectivity and stitching constraints.
 
 ## Method Overview
@@ -151,3 +153,7 @@ The generation flow calls these modules in order:
 For regular-grid cases, `scripts/regular_chiplet_gen/tcg.py` can generate the benchmark description first. Configure its grid dimensions, interposer dimensions, pin counts, and output path, and save the result as the benchmark-root `case_discription.json`.
 
 Use an absolute `work_dir` and a project-relative `case_dir`, both with a trailing `/`. Configure a benchmark-specific `strategy.json` and matching reticle geometry before partitioning and placement. The default loop in `main.py` uses prepared inputs; call `flow.generate_case()` before `flow.partition(...)` when generating a new case.
+
+### 5. RAPID-DTC
+
+[RAPID-DTC](https://github.com/ElectroWarriors/RAPID-DTC) coordinates chiplet placement, deep trench capacitor (DTC) insertion, bump redistribution, and escape routing to improve routability and power supply integrity. It can use this project's benchmarks and be invoked through `MainFlow.run_ilp_grouter()` in `main.py`, after setting `path_exe` to the compiled RAPID-DTC executable.

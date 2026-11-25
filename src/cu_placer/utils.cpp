@@ -167,7 +167,7 @@ bool EN_DEBUG = true;
 bool EN_OUTPUT_DB = false;
 bool EN_OUTPUT_OP = false;
 bool EN_OUTPUT_GEO = false;
-bool EN_OUTPUT_GD = false;
+bool EN_OUTPUT_GD = true;
 bool EN_OUTPUT_HP = false;
 // case 8, 22, 225
 RealType HPWL_PARAM0 = 40;

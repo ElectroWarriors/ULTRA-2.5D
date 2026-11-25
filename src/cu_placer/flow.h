@@ -30,6 +30,7 @@ class MainFlow {
             spdlog::info("██║   ██║██║     ██║   ██╔══██╗██╔══██║╚════╝██╔═══╝    ╚════██║██║  ██║");
             spdlog::info("╚██████╔╝███████╗██║   ██║  ██║██║  ██║      ███████╗██╗███████║██████╔╝");
             spdlog::info(" ╚═════╝ ╚══════╝╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝      ╚══════╝╚═╝╚══════╝╚═════╝ ");
+
             _json_netlist      = utils::ReadJSON(_workdir+_casedir+"json_chiplets/chiplet.json");
             _json_interposer   = utils::ReadJSON(_workdir+_casedir+"json_chiplets/interposer.json");
             _json_datadescript = utils::ReadJSON(_workdir+_casedir+"place_init/case_discription.json");

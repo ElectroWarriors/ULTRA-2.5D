@@ -41,6 +41,12 @@ class MainFlow(object):
         self.generate_chiplet_case() # generate 'chiplet.json' with 'case_description.json'
         self.cluster_assignment() # pins cluster assignment (Gaussian Function), edit 'chiplet.json'
 
+    def run_ilp_grouter(self):
+        start = time.time()
+        path_exe = "/path/to/RAPID-DTC/bin/router"
+        subprocess.run([path_exe, self.workdir, self.casedir, "-RD", "-CB"], cwd=self.workdir) # "-RD", "-CB" 
+        print("ilp_grouter finished, cost:", time.time()-start)
+
     def partition(self, reticle_file, enmilp):
         reticle_file = self.workdir+"scripts/reticle_type/"+reticle_file
         par = partition.Partition(self.workdir, self.casedir, reticle_file)
